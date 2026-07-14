@@ -161,6 +161,20 @@
   .bud-total.warn{color:var(--red);}
   .bud-total.ok{color:var(--green);}
   .ai-out{font-size:13.5px; line-height:1.65; color:var(--text); white-space:pre-wrap; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);}
+
+  .month-row{display:flex; align-items:center; justify-content:space-between; padding:11px 4px; border-bottom:1px solid var(--border); cursor:pointer;}
+  .month-row:last-child{border-bottom:none;}
+  .month-row:active{background:var(--surface-2);}
+  .month-name{font-size:14px; font-weight:600; color:var(--text);}
+  .month-empty{color:var(--text-faint); font-weight:400;}
+  .month-nums{display:flex; gap:14px; font-family:var(--mono); font-size:12.5px;}
+  .month-nums .in{color:var(--green);}
+  .month-nums .out{color:var(--red);}
+  .filter-banner{
+    display:flex; align-items:center; justify-content:space-between; background:var(--surface-2);
+    border:1px solid var(--gold-dim); border-radius:10px; padding:9px 13px; margin:14px 0 -4px; font-size:13px; color:var(--gold);
+  }
+  .filter-banner span.x{cursor:pointer; color:var(--text-dim); font-size:16px;}
 </style>
 </head>
 <body>
@@ -197,6 +211,8 @@
   <div class="tabs">
     <div class="tab active" data-panel="entryPanel">Add</div>
     <div class="tab" data-panel="budgetPanel">Budget</div>
+    <div class="tab" data-panel="debtPanel">Debts</div>
+    <div class="tab" data-panel="monthsPanel">Months</div>
     <div class="tab" data-panel="breakdownPanel">Breakdown</div>
     <div class="tab" data-panel="sourcesPanel">Sources</div>
     <div class="tab" data-panel="syncPanel">Sync</div>
@@ -226,6 +242,8 @@
       <div class="chip active" data-cat="all">All</div>
     </div>
 
+    <div id="monthFilterBanner"></div>
+
     <div id="listArea">
       <div class="loading">loading…</div>
     </div>
@@ -246,6 +264,42 @@
       <button class="add-btn secondary" id="getTipsBtn">Get AI tips</button>
       <div class="ai-out" id="aiOut" style="display:none;"></div>
     </div>
+  </div>
+
+  <div class="panel" id="debtPanel">
+    <div class="card">
+      <div class="card-title">Credit cards &amp; loans</div>
+      <div class="src-list" id="debtList"></div>
+      <div class="field-row" style="margin-top:12px;">
+        <input type="text" class="text-input" id="debtName" placeholder="Name (e.g. Visa)">
+      </div>
+      <div class="field-row">
+        <input type="number" inputmode="decimal" class="text-input" id="debtBalance" placeholder="Balance $">
+        <input type="number" inputmode="decimal" class="text-input" id="debtApr" placeholder="APR %">
+        <input type="number" inputmode="decimal" class="text-input" id="debtMin" placeholder="Min payment $">
+      </div>
+      <button class="add-btn secondary" id="addDebtBtn">Add debt</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Avalanche payoff plan</div>
+      <div id="debtPlan"></div>
+      <div class="hint" id="debtHint"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="monthsPanel">
+    <div class="card">
+      <div class="card-title">
+        <span>Yearly overview</span>
+        <span style="display:flex; align-items:center; gap:10px;">
+          <span class="icon-btn" id="yearPrev">‹</span>
+          <span id="yearLabel" style="font-family:var(--mono); color:var(--text);">2026</span>
+          <span class="icon-btn" id="yearNext">›</span>
+        </span>
+      </div>
+      <div id="monthsList"></div>
+    </div>
+    <div class="hint">Tap a month to view just those entries in the Add tab. Add's "This month" filter always tracks the current calendar month regardless of what you browse here.</div>
   </div>
 
   <div class="panel" id="breakdownPanel">
@@ -290,10 +344,11 @@
       </div>
       <button class="add-btn" id="connectSyncBtn">Connect</button>
       <button class="add-btn secondary" id="syncNowBtn" style="margin-top:8px;">Sync now</button>
+      <button class="add-btn secondary" id="copyLinkBtn" style="margin-top:8px; display:none;">Copy link for another device</button>
       <div class="hint" id="lastSyncHint"></div>
     </div>
     <div class="hint">
-      This connects both phones to the same Google Sheet, so entries added on one show up on the other. Ask me in chat for the setup steps if you haven't done that yet.
+      Once you connect a device here, it stays connected — no repeat login, it just quietly syncs every ~20 seconds and whenever you reopen the app. To add a second or third phone, connect it here once too, using the same link (tap "Copy link" below after connecting this one, then AirDrop or text it over).
     </div>
   </div>
 
@@ -306,10 +361,14 @@
 
   let txns = [];
   let deletedIds = [];
+  let debts = [];
+  let deletedDebtIds = [];
   let categories = { income: [...DEFAULT_INCOME], expense: [...DEFAULT_EXPENSE], highInterest: [] };
   let syncUrl = '';
   let currentType = 'income';
   let currentPeriod = 'all';
+  let specificMonth = null; // { year, month } when set via Months tab
+  let monthsBrowseYear = new Date().getFullYear();
   let currentCatFilter = 'all';
   let syncTimer = null;
 
@@ -329,6 +388,8 @@
   function loadLocal(){
     try{ txns = JSON.parse(localStorage.getItem('ledger_txns') || '[]'); }catch(e){ txns = []; }
     try{ deletedIds = JSON.parse(localStorage.getItem('ledger_deleted') || '[]'); }catch(e){ deletedIds = []; }
+    try{ debts = JSON.parse(localStorage.getItem('ledger_debts') || '[]'); }catch(e){ debts = []; }
+    try{ deletedDebtIds = JSON.parse(localStorage.getItem('ledger_deleted_debts') || '[]'); }catch(e){ deletedDebtIds = []; }
     try{
       const c = JSON.parse(localStorage.getItem('ledger_categories'));
       if(c && c.income && c.expense) categories = { income:c.income, expense:c.expense, highInterest: c.highInterest || [] };
@@ -341,6 +402,8 @@
   function saveLocal(){
     localStorage.setItem('ledger_txns', JSON.stringify(txns));
     localStorage.setItem('ledger_deleted', JSON.stringify(deletedIds));
+    localStorage.setItem('ledger_debts', JSON.stringify(debts));
+    localStorage.setItem('ledger_deleted_debts', JSON.stringify(deletedDebtIds));
     localStorage.setItem('ledger_categories', JSON.stringify(categories));
     localStorage.setItem('ledger_updated_at', new Date().toISOString());
   }
@@ -357,6 +420,8 @@
     if(!remote || typeof remote !== 'object') return;
     const remoteTxns = Array.isArray(remote.txns) ? remote.txns : [];
     const remoteDeleted = Array.isArray(remote.deletedIds) ? remote.deletedIds : [];
+    const remoteDebts = Array.isArray(remote.debts) ? remote.debts : [];
+    const remoteDeletedDebts = Array.isArray(remote.deletedDebtIds) ? remote.deletedDebtIds : [];
     const remoteCats = remote.categories || { income:[], expense:[], highInterest:[] };
 
     const byId = {};
@@ -364,6 +429,12 @@
     remoteTxns.forEach(t => { if(!byId[t.id]) byId[t.id] = t; });
     deletedIds = Array.from(new Set([...deletedIds, ...remoteDeleted]));
     txns = Object.values(byId).filter(t => !deletedIds.includes(t.id));
+
+    const debtById = {};
+    debts.forEach(d => debtById[d.id] = d);
+    remoteDebts.forEach(d => { if(!debtById[d.id]) debtById[d.id] = d; });
+    deletedDebtIds = Array.from(new Set([...deletedDebtIds, ...remoteDeletedDebts]));
+    debts = Object.values(debtById).filter(d => !deletedDebtIds.includes(d.id));
 
     categories.income = Array.from(new Set([...categories.income, ...(remoteCats.income||[])]));
     categories.expense = Array.from(new Set([...categories.expense, ...(remoteCats.expense||[])]));
@@ -388,6 +459,7 @@
       renderBreakdown();
       renderSourceLists();
       renderBudget();
+      renderDebts();
     }catch(e){
       setSyncStatus('err', 'Sync failed — check the URL or your connection');
     }
@@ -397,7 +469,7 @@
     if(!syncUrl) return;
     if(!silent) setSyncStatus('busy', 'Syncing…');
     try{
-      const payload = JSON.stringify({ txns, deletedIds, categories, updatedAt: new Date().toISOString() });
+      const payload = JSON.stringify({ txns, deletedIds, debts, deletedDebtIds, categories, updatedAt: new Date().toISOString() });
       await fetch(syncUrl, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: payload });
       if(!silent){
         setSyncStatus('ok', 'Synced');
@@ -422,10 +494,20 @@
     if(!val){ setSyncStatus('err', 'Paste a URL first'); return; }
     syncUrl = val;
     localStorage.setItem('ledger_sync_url', syncUrl);
+    $('copyLinkBtn').style.display = 'block';
     await pullFromCloud();
     startAutoSync();
   });
   $('syncNowBtn').addEventListener('click', () => pullFromCloud());
+  $('copyLinkBtn').addEventListener('click', async () => {
+    try{
+      await navigator.clipboard.writeText(syncUrl);
+      $('copyLinkBtn').textContent = 'Copied!';
+      setTimeout(() => { $('copyLinkBtn').textContent = 'Copy link for another device'; }, 1500);
+    }catch(e){
+      alert(syncUrl);
+    }
+  });
 
   /* ---------- tabs ---------- */
   document.querySelectorAll('.tab').forEach(tab => {
@@ -437,6 +519,8 @@
       if(tab.dataset.panel === 'breakdownPanel') renderBreakdown();
       if(tab.dataset.panel === 'sourcesPanel') renderSourceLists();
       if(tab.dataset.panel === 'budgetPanel') renderBudget();
+      if(tab.dataset.panel === 'debtPanel') renderDebts();
+      if(tab.dataset.panel === 'monthsPanel') renderMonthsList();
     });
   });
 
@@ -466,6 +550,8 @@
       document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentPeriod = btn.dataset.period;
+      specificMonth = null;
+      renderMonthBanner();
       render();
       renderBreakdown();
     });
@@ -500,6 +586,7 @@
   function inPeriod(dateStr){
     const d = new Date(dateStr);
     const now = new Date();
+    if(specificMonth) return d.getFullYear() === specificMonth.year && d.getMonth() === specificMonth.month;
     if(currentPeriod === 'all') return true;
     if(currentPeriod === 'today') return d.toDateString() === now.toDateString();
     if(currentPeriod === 'week'){ const weekAgo = new Date(now); weekAgo.setDate(now.getDate()-7); return d >= weekAgo; }
@@ -662,6 +749,152 @@
   $('newIncomeSrc').addEventListener('keydown', e => { if(e.key==='Enter') addSource('income','newIncomeSrc'); });
   $('newExpenseSrc').addEventListener('keydown', e => { if(e.key==='Enter') addSource('expense','newExpenseSrc'); });
 
+  /* ---------- months overview ---------- */
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  function renderMonthsList(){
+    $('yearLabel').textContent = monthsBrowseYear;
+    const el = $('monthsList');
+    el.innerHTML = MONTH_NAMES.map((name, i) => {
+      const items = txns.filter(t => {
+        const d = new Date(t.date);
+        return d.getFullYear() === monthsBrowseYear && d.getMonth() === i;
+      });
+      const inc = items.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+      const out = items.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+      const empty = items.length === 0;
+      return `
+        <div class="month-row" data-month="${i}">
+          <span class="month-name ${empty ? 'month-empty' : ''}">${name}</span>
+          <span class="month-nums">
+            ${empty ? '<span class="month-empty">No entries</span>' : `<span class="in">${fmt(inc)}</span><span class="out">${fmt(out)}</span>`}
+          </span>
+        </div>
+      `;
+    }).join('');
+    el.querySelectorAll('.month-row').forEach(row => {
+      row.addEventListener('click', () => {
+        specificMonth = { year: monthsBrowseYear, month: parseInt(row.dataset.month, 10) };
+        document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+        document.querySelector('.tab[data-panel="entryPanel"]').classList.add('active');
+        $('entryPanel').classList.add('visible');
+        buildFilterChips();
+        renderMonthBanner();
+        render();
+      });
+    });
+  }
+
+  $('yearPrev').addEventListener('click', () => { monthsBrowseYear--; renderMonthsList(); });
+  $('yearNext').addEventListener('click', () => { monthsBrowseYear++; renderMonthsList(); });
+
+  function renderMonthBanner(){
+    const el = $('monthFilterBanner');
+    if(!specificMonth){ el.innerHTML = ''; return; }
+    el.innerHTML = `
+      <div class="filter-banner">
+        <span>Showing ${MONTH_NAMES[specificMonth.month]} ${specificMonth.year}</span>
+        <span class="x" id="clearMonthFilter">×</span>
+      </div>
+    `;
+    $('clearMonthFilter').addEventListener('click', () => {
+      specificMonth = null;
+      document.querySelector('.period-btn[data-period="all"]').classList.add('active');
+      renderMonthBanner();
+      render();
+    });
+  }
+
+  /* ---------- debt tracker ---------- */
+  function renderDebtList(){
+    const el = $('debtList');
+    if(debts.length === 0){ el.innerHTML = '<div class="hint">No cards or loans added yet.</div>'; return; }
+    const sorted = [...debts].sort((a,b) => b.apr - a.apr);
+    el.innerHTML = sorted.map(d => `
+      <div class="src-item">
+        <span class="src-name">${escapeHtml(d.name)} — ${fmt(d.balance)} @ ${d.apr}% <span style="color:var(--text-faint)">(min ${fmt(d.minPayment)})</span></span>
+        <span class="src-del" data-id="${d.id}">×</span>
+      </div>
+    `).join('');
+    el.querySelectorAll('.src-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        debts = debts.filter(d => d.id !== btn.dataset.id);
+        deletedDebtIds.push(btn.dataset.id);
+        saveLocal(); renderDebtList(); renderDebtPlan(); pushToCloud(true);
+      });
+    });
+  }
+
+  $('addDebtBtn').addEventListener('click', () => {
+    const name = $('debtName').value.trim();
+    const balance = parseFloat($('debtBalance').value);
+    const apr = parseFloat($('debtApr').value);
+    const minPayment = parseFloat($('debtMin').value);
+    if(!name || !(balance >= 0) || !(apr >= 0) || !(minPayment >= 0)){
+      alert('Fill in name, balance, APR, and minimum payment.');
+      return;
+    }
+    debts.push({ id: uid(), name, balance, apr, minPayment });
+    $('debtName').value = ''; $('debtBalance').value = ''; $('debtApr').value = ''; $('debtMin').value = '';
+    saveLocal(); renderDebtList(); renderDebtPlan(); pushToCloud(true);
+  });
+
+  function renderDebtPlan(){
+    const planEl = $('debtPlan');
+    const hintEl = $('debtHint');
+    if(debts.length === 0){
+      planEl.innerHTML = '<div class="hint">Add your cards and loans above to get a payoff order.</div>';
+      hintEl.textContent = '';
+      return;
+    }
+    const b = computeBudget();
+    const totalMin = debts.reduce((s,d) => s + d.minPayment, 0);
+    const totalBalance = debts.reduce((s,d) => s + d.balance, 0);
+    const weightedApr = totalBalance > 0 ? debts.reduce((s,d) => s + d.apr * d.balance, 0) / totalBalance : 0;
+    const incomeLeftover = b ? b.leftover : 0;
+    const extra = Math.max(incomeLeftover - totalMin, 0);
+
+    const sorted = [...debts].sort((a,b) => b.apr - a.apr);
+    let remaining = extra;
+    const plan = sorted.map((d, i) => {
+      let suggested = d.minPayment;
+      let note = 'Minimum payment';
+      if(i === 0 && remaining > 0){
+        const room = Math.max(d.balance - d.minPayment, 0);
+        const add = Math.min(remaining, room);
+        suggested = d.minPayment + add;
+        note = 'Highest rate — extra goes here first (avalanche method)';
+        remaining -= add;
+      }
+      return { ...d, suggested, note };
+    });
+
+    planEl.innerHTML = plan.map(d => `
+      <div class="bud-row">
+        <div class="bud-left">
+          <div class="bud-cat">${escapeHtml(d.name)}${d === plan[0] && extra > 0 ? '<span class="bud-tag">priority</span>' : ''}</div>
+          <div class="bud-note">${d.apr}% APR · ${d.note}</div>
+        </div>
+        <div class="bud-amt">${fmt(d.suggested)}</div>
+      </div>
+    `).join('') + `
+      <div class="bud-total ok">
+        <span>Total to debts this month</span>
+        <span>${fmt(plan.reduce((s,d)=>s+d.suggested,0))}</span>
+      </div>
+    `;
+    hintEl.textContent = extra > 0
+      ? `You've got roughly ${fmt(extra)} left after regular expenses and minimums — it's aimed at your highest-APR debt (${sorted[0].name} at ${sorted[0].apr}%) first. Once that's paid off, the next-highest rate becomes the target.`
+      : `Right now your average income only covers minimum payments and regular expenses — no extra to accelerate payoff yet. Total debt: ${fmt(totalBalance)}, blended rate: ${weightedApr.toFixed(1)}%.`;
+  }
+
+  function renderDebts(){
+    renderDebtList();
+    renderDebtPlan();
+  }
+
   /* ---------- budget engine ---------- */
   function monthKey(dateStr){ const d = new Date(dateStr); return d.getFullYear()+'-'+d.getMonth(); }
 
@@ -731,7 +964,10 @@
     out.textContent = '';
 
     const summary = b.rows.map(r => `${r.cat}: avg $${r.avg.toFixed(2)}/mo${r.isHigh ? ' (flagged high interest)' : ''}`).join('\n');
-    const prompt = `My average monthly income is $${b.avgMonthlyIncome.toFixed(2)} across ${b.numMonths} months of tracked data.\nMy expense categories and average monthly spend:\n${summary}\nLeftover after suggested budget: $${b.leftover.toFixed(2)}.\nGive me 3-4 short, practical, plain-text tips for this budget, prioritizing paying down anything flagged high interest faster. No markdown, no headers, under 130 words.`;
+    const debtSummary = debts.length
+      ? debts.map(d => `${d.name}: balance $${d.balance.toFixed(2)}, ${d.apr}% APR, min payment $${d.minPayment.toFixed(2)}`).join('\n')
+      : 'None logged.';
+    const prompt = `My average monthly income is $${b.avgMonthlyIncome.toFixed(2)} across ${b.numMonths} months of tracked data.\nMy expense categories and average monthly spend:\n${summary}\nLeftover after suggested budget: $${b.leftover.toFixed(2)}.\nMy credit cards and loans:\n${debtSummary}\nGive me 3-4 short, practical, plain-text tips for this budget, prioritizing paying down the highest-interest debt fastest (avalanche method). No markdown, no headers, under 130 words.`;
 
     try{
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -791,8 +1027,10 @@
     populateCategorySelect();
     buildFilterChips();
     render();
+    renderDebts();
     if(syncUrl){
       $('syncUrlInput').value = syncUrl;
+      $('copyLinkBtn').style.display = 'block';
       setSyncStatus('ok', 'Connected');
       pullFromCloud();
       startAutoSync();
