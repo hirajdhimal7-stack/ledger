@@ -58,6 +58,7 @@
   .hero-sub .lab{color:var(--text-faint); font-family:var(--sans); font-size:11px; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:2px;}
   .hero-sub .in{color:var(--green);}
   .hero-sub .out{color:var(--red);}
+  .hero-sub .debt{color:var(--gold);}
 
   .periods{display:flex; gap:6px; margin:16px 0 4px;}
   .period-btn{flex:1; padding:8px 0; text-align:center; font-size:12px; border-radius:8px; background:var(--surface); border:1px solid var(--border); color:var(--text-dim); font-family:var(--sans); cursor:pointer;}
@@ -175,6 +176,20 @@
     border:1px solid var(--gold-dim); border-radius:10px; padding:9px 13px; margin:14px 0 -4px; font-size:13px; color:var(--gold);
   }
   .filter-banner span.x{cursor:pointer; color:var(--text-dim); font-size:16px;}
+
+  .shift-row{padding:11px 4px; border-bottom:1px solid var(--border);}
+  .shift-row:last-child{border-bottom:none;}
+  .shift-top{display:flex; justify-content:space-between; align-items:center;}
+  .shift-job{font-size:14px; font-weight:600;}
+  .shift-date{font-size:11px; color:var(--text-faint); margin-top:1px;}
+  .shift-pay{font-family:var(--mono); font-size:14px; color:var(--gold); font-weight:600;}
+  .shift-meta{display:flex; justify-content:space-between; align-items:center; margin-top:6px;}
+  .shift-hours{font-size:12px; color:var(--text-dim);}
+  .shift-actions{display:flex; gap:8px; align-items:center;}
+  .shift-tag{font-size:10px; padding:2px 7px; border-radius:100px; background:var(--green-dim); color:var(--green); font-weight:600;}
+  .mini-btn{font-size:11px; padding:5px 10px; border-radius:100px; border:1px solid var(--border-2); background:var(--surface-2); color:var(--gold); cursor:pointer;}
+  .mini-del{color:var(--text-faint); font-size:16px; cursor:pointer; padding:2px 6px;}
+  .debt-hist{font-size:11.5px; color:var(--text-faint); margin-top:2px;}
 </style>
 </head>
 <body>
@@ -198,6 +213,7 @@
     <div class="hero-sub">
       <div><div class="lab">In</div><div class="in" id="totalIn">$0.00</div></div>
       <div><div class="lab">Out</div><div class="out" id="totalOut">$0.00</div></div>
+      <div><div class="lab">Debt</div><div class="debt" id="totalDebt">$0.00</div></div>
     </div>
   </div>
 
@@ -213,6 +229,7 @@
     <div class="tab" data-panel="budgetPanel">Budget</div>
     <div class="tab" data-panel="debtPanel">Debts</div>
     <div class="tab" data-panel="monthsPanel">Months</div>
+    <div class="tab" data-panel="workPanel">Work</div>
     <div class="tab" data-panel="breakdownPanel">Breakdown</div>
     <div class="tab" data-panel="sourcesPanel">Sources</div>
     <div class="tab" data-panel="syncPanel">Sync</div>
@@ -231,6 +248,14 @@
       </div>
       <div class="field-row">
         <select id="categorySelect"></select>
+      </div>
+      <div class="field-row" id="debtLinkRow" style="display:none;">
+        <select id="debtLinkSelect">
+          <option value="">Not a debt payment</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <input type="date" class="text-input" id="dateInput">
       </div>
       <div class="field-row">
         <input type="text" class="note-input" id="noteInput" placeholder="Note (optional)">
@@ -268,22 +293,17 @@
 
   <div class="panel" id="debtPanel">
     <div class="card">
+      <div class="card-title">Total owing</div>
+      <div class="hero-balance" style="font-size:32px;" id="debtTotalDisplay">$0.00</div>
+    </div>
+    <div class="card">
       <div class="card-title">Credit cards &amp; loans</div>
       <div class="src-list" id="debtList"></div>
       <div class="field-row" style="margin-top:12px;">
         <input type="text" class="text-input" id="debtName" placeholder="Name (e.g. Visa)">
-      </div>
-      <div class="field-row">
-        <input type="number" inputmode="decimal" class="text-input" id="debtBalance" placeholder="Balance $">
-        <input type="number" inputmode="decimal" class="text-input" id="debtApr" placeholder="APR %">
-        <input type="number" inputmode="decimal" class="text-input" id="debtMin" placeholder="Min payment $">
+        <input type="number" inputmode="decimal" class="text-input" id="debtBalance" placeholder="Balance owing $">
       </div>
       <button class="add-btn secondary" id="addDebtBtn">Add debt</button>
-    </div>
-    <div class="card">
-      <div class="card-title">Avalanche payoff plan</div>
-      <div id="debtPlan"></div>
-      <div class="hint" id="debtHint"></div>
     </div>
   </div>
 
@@ -300,6 +320,51 @@
       <div id="monthsList"></div>
     </div>
     <div class="hint">Tap a month to view just those entries in the Add tab. Add's "This month" filter always tracks the current calendar month regardless of what you browse here.</div>
+  </div>
+
+  <div class="panel" id="workPanel">
+    <div class="card">
+      <div class="card-title">Jobs &amp; pay rates</div>
+      <div class="src-list" id="jobList"></div>
+      <div class="field-row" style="margin-top:12px;">
+        <input type="text" class="text-input" id="jobName" placeholder="Job name (e.g. PSW / Paramed)">
+      </div>
+      <div class="field-row">
+        <input type="number" inputmode="decimal" class="text-input" id="jobRate" placeholder="Default rate $/hr">
+      </div>
+      <button class="add-btn secondary" id="addJobBtn">Add job</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Log a shift</div>
+      <div class="field-row">
+        <select id="shiftJobSelect"></select>
+      </div>
+      <div class="field-row">
+        <input type="date" class="text-input" id="shiftDate">
+      </div>
+      <div class="field-row">
+        <input type="number" inputmode="decimal" class="text-input" id="shiftHours" placeholder="Hours worked">
+        <input type="number" inputmode="decimal" class="text-input" id="shiftRate" placeholder="Rate $/hr">
+      </div>
+      <div class="field-row">
+        <input type="text" class="note-input" id="shiftNote" placeholder="Note (optional)">
+      </div>
+      <button class="add-btn" id="addShiftBtn">Log shift</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Shift log</span>
+        <span style="display:flex; align-items:center; gap:10px;">
+          <span class="icon-btn" id="shiftMonthPrev">‹</span>
+          <span id="shiftMonthLabel" style="font-family:var(--mono); color:var(--text); font-size:12px;"></span>
+          <span class="icon-btn" id="shiftMonthNext">›</span>
+        </span>
+      </div>
+      <div id="shiftTotals" class="hint" style="margin-top:0; margin-bottom:10px;"></div>
+      <div id="shiftList"></div>
+    </div>
   </div>
 
   <div class="panel" id="breakdownPanel">
@@ -363,6 +428,12 @@
   let deletedIds = [];
   let debts = [];
   let deletedDebtIds = [];
+  let jobs = [];
+  let deletedJobIds = [];
+  let shifts = [];
+  let deletedShiftIds = [];
+  let editingDebtId = null;
+  let shiftBrowse = { year: new Date().getFullYear(), month: new Date().getMonth() };
   let categories = { income: [...DEFAULT_INCOME], expense: [...DEFAULT_EXPENSE], highInterest: [] };
   let syncUrl = '';
   let currentType = 'income';
@@ -390,6 +461,10 @@
     try{ deletedIds = JSON.parse(localStorage.getItem('ledger_deleted') || '[]'); }catch(e){ deletedIds = []; }
     try{ debts = JSON.parse(localStorage.getItem('ledger_debts') || '[]'); }catch(e){ debts = []; }
     try{ deletedDebtIds = JSON.parse(localStorage.getItem('ledger_deleted_debts') || '[]'); }catch(e){ deletedDebtIds = []; }
+    try{ jobs = JSON.parse(localStorage.getItem('ledger_jobs') || '[]'); }catch(e){ jobs = []; }
+    try{ deletedJobIds = JSON.parse(localStorage.getItem('ledger_deleted_jobs') || '[]'); }catch(e){ deletedJobIds = []; }
+    try{ shifts = JSON.parse(localStorage.getItem('ledger_shifts') || '[]'); }catch(e){ shifts = []; }
+    try{ deletedShiftIds = JSON.parse(localStorage.getItem('ledger_deleted_shifts') || '[]'); }catch(e){ deletedShiftIds = []; }
     try{
       const c = JSON.parse(localStorage.getItem('ledger_categories'));
       if(c && c.income && c.expense) categories = { income:c.income, expense:c.expense, highInterest: c.highInterest || [] };
@@ -404,6 +479,10 @@
     localStorage.setItem('ledger_deleted', JSON.stringify(deletedIds));
     localStorage.setItem('ledger_debts', JSON.stringify(debts));
     localStorage.setItem('ledger_deleted_debts', JSON.stringify(deletedDebtIds));
+    localStorage.setItem('ledger_jobs', JSON.stringify(jobs));
+    localStorage.setItem('ledger_deleted_jobs', JSON.stringify(deletedJobIds));
+    localStorage.setItem('ledger_shifts', JSON.stringify(shifts));
+    localStorage.setItem('ledger_deleted_shifts', JSON.stringify(deletedShiftIds));
     localStorage.setItem('ledger_categories', JSON.stringify(categories));
     localStorage.setItem('ledger_updated_at', new Date().toISOString());
   }
@@ -422,6 +501,10 @@
     const remoteDeleted = Array.isArray(remote.deletedIds) ? remote.deletedIds : [];
     const remoteDebts = Array.isArray(remote.debts) ? remote.debts : [];
     const remoteDeletedDebts = Array.isArray(remote.deletedDebtIds) ? remote.deletedDebtIds : [];
+    const remoteJobs = Array.isArray(remote.jobs) ? remote.jobs : [];
+    const remoteDeletedJobs = Array.isArray(remote.deletedJobIds) ? remote.deletedJobIds : [];
+    const remoteShifts = Array.isArray(remote.shifts) ? remote.shifts : [];
+    const remoteDeletedShifts = Array.isArray(remote.deletedShiftIds) ? remote.deletedShiftIds : [];
     const remoteCats = remote.categories || { income:[], expense:[], highInterest:[] };
 
     const byId = {};
@@ -435,6 +518,18 @@
     remoteDebts.forEach(d => { if(!debtById[d.id]) debtById[d.id] = d; });
     deletedDebtIds = Array.from(new Set([...deletedDebtIds, ...remoteDeletedDebts]));
     debts = Object.values(debtById).filter(d => !deletedDebtIds.includes(d.id));
+
+    const jobById = {};
+    jobs.forEach(j => jobById[j.id] = j);
+    remoteJobs.forEach(j => { if(!jobById[j.id]) jobById[j.id] = j; });
+    deletedJobIds = Array.from(new Set([...deletedJobIds, ...remoteDeletedJobs]));
+    jobs = Object.values(jobById).filter(j => !deletedJobIds.includes(j.id));
+
+    const shiftById = {};
+    shifts.forEach(s => shiftById[s.id] = s);
+    remoteShifts.forEach(s => { if(!shiftById[s.id]) shiftById[s.id] = s; });
+    deletedShiftIds = Array.from(new Set([...deletedShiftIds, ...remoteDeletedShifts]));
+    shifts = Object.values(shiftById).filter(s => !deletedShiftIds.includes(s.id));
 
     categories.income = Array.from(new Set([...categories.income, ...(remoteCats.income||[])]));
     categories.expense = Array.from(new Set([...categories.expense, ...(remoteCats.expense||[])]));
@@ -460,6 +555,7 @@
       renderSourceLists();
       renderBudget();
       renderDebts();
+      renderWork();
     }catch(e){
       setSyncStatus('err', 'Sync failed — check the URL or your connection');
     }
@@ -469,7 +565,7 @@
     if(!syncUrl) return;
     if(!silent) setSyncStatus('busy', 'Syncing…');
     try{
-      const payload = JSON.stringify({ txns, deletedIds, debts, deletedDebtIds, categories, updatedAt: new Date().toISOString() });
+      const payload = JSON.stringify({ txns, deletedIds, debts, deletedDebtIds, jobs, deletedJobIds, shifts, deletedShiftIds, categories, updatedAt: new Date().toISOString() });
       await fetch(syncUrl, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: payload });
       if(!silent){
         setSyncStatus('ok', 'Synced');
@@ -521,6 +617,7 @@
       if(tab.dataset.panel === 'budgetPanel') renderBudget();
       if(tab.dataset.panel === 'debtPanel') renderDebts();
       if(tab.dataset.panel === 'monthsPanel') renderMonthsList();
+      if(tab.dataset.panel === 'workPanel') renderWork();
     });
   });
 
@@ -542,8 +639,19 @@
       btn.classList.add('active');
       currentType = btn.dataset.type;
       populateCategorySelect();
+      populateDebtLinkSelect();
     });
   });
+
+  function populateDebtLinkSelect(){
+    const row = $('debtLinkRow');
+    const sel = $('debtLinkSelect');
+    if(currentType !== 'expense' || debts.length === 0){ row.style.display = 'none'; return; }
+    row.style.display = 'flex';
+    sel.innerHTML = '<option value="">Not a debt payment</option>' + debts.map(d =>
+      `<option value="${d.id}">${escapeHtml(d.name)} — ${fmt(d.balance)} owing</option>`
+    ).join('');
+  }
 
   document.querySelectorAll('.period-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -560,26 +668,40 @@
   $('addBtn').addEventListener('click', () => {
     const amt = parseFloat($('amountInput').value);
     if(!amt || amt <= 0){ $('amountInput').focus(); return; }
+    const dateVal = $('dateInput').value;
+    const entryDate = dateVal ? new Date(dateVal + 'T12:00:00').toISOString() : new Date().toISOString();
+    const linkedDebtId = (currentType === 'expense' && $('debtLinkSelect').value) ? $('debtLinkSelect').value : null;
     const entry = {
       id: uid(), type: currentType, amount: Math.round(amt*100)/100,
       category: $('categorySelect').value, note: $('noteInput').value.trim(),
-      date: new Date().toISOString()
+      date: entryDate, debtId: linkedDebtId
     };
     txns.unshift(entry);
+    if(linkedDebtId){
+      const d = debts.find(x => x.id === linkedDebtId);
+      if(d) d.balance = Math.max(0, Math.round((d.balance - entry.amount) * 100) / 100);
+    }
     $('amountInput').value = '';
     $('noteInput').value = '';
     saveLocal();
     buildFilterChips();
     render(true, entry.type);
+    if(linkedDebtId){ renderDebtList(); renderDebtTotal(); populateDebtLinkSelect(); }
     pushToCloud(true);
   });
 
   function deleteTxn(id){
+    const entry = txns.find(t => t.id === id);
+    if(entry && entry.debtId){
+      const d = debts.find(x => x.id === entry.debtId);
+      if(d) d.balance = Math.round((d.balance + entry.amount) * 100) / 100;
+    }
     txns = txns.filter(t => t.id !== id);
     deletedIds.push(id);
     saveLocal();
     buildFilterChips();
     render();
+    renderDebtList(); renderDebtTotal(); populateDebtLinkSelect();
     pushToCloud(true);
   }
 
@@ -637,6 +759,7 @@
 
     $('totalIn').textContent = fmt(totalIn);
     $('totalOut').textContent = fmt(totalOut);
+    $('totalDebt').textContent = fmt(debts.reduce((s,d) => s + d.balance, 0));
     $('balanceVal').textContent = fmt(balance);
 
     const tick = $('balanceTick');
@@ -807,92 +930,202 @@
     });
   }
 
-  /* ---------- debt tracker ---------- */
-  function renderDebtList(){
-    const el = $('debtList');
-    if(debts.length === 0){ el.innerHTML = '<div class="hint">No cards or loans added yet.</div>'; return; }
-    const sorted = [...debts].sort((a,b) => b.apr - a.apr);
-    el.innerHTML = sorted.map(d => `
+  /* ---------- work: jobs & shifts ---------- */
+  function renderJobList(){
+    const el = $('jobList');
+    if(jobs.length === 0){ el.innerHTML = '<div class="hint">No jobs added yet.</div>'; return; }
+    el.innerHTML = jobs.map(j => `
       <div class="src-item">
-        <span class="src-name">${escapeHtml(d.name)} — ${fmt(d.balance)} @ ${d.apr}% <span style="color:var(--text-faint)">(min ${fmt(d.minPayment)})</span></span>
-        <span class="src-del" data-id="${d.id}">×</span>
+        <span class="src-name">${escapeHtml(j.name)} — ${fmt(j.rate)}/hr</span>
+        <span class="src-del" data-id="${j.id}">×</span>
       </div>
     `).join('');
     el.querySelectorAll('.src-del').forEach(btn => {
       btn.addEventListener('click', () => {
-        debts = debts.filter(d => d.id !== btn.dataset.id);
-        deletedDebtIds.push(btn.dataset.id);
-        saveLocal(); renderDebtList(); renderDebtPlan(); pushToCloud(true);
+        jobs = jobs.filter(j => j.id !== btn.dataset.id);
+        deletedJobIds.push(btn.dataset.id);
+        saveLocal(); renderJobList(); populateShiftJobSelect(); pushToCloud(true);
       });
     });
+  }
+
+  function populateShiftJobSelect(){
+    const sel = $('shiftJobSelect');
+    sel.innerHTML = jobs.map(j => `<option value="${j.id}" data-rate="${j.rate}">${escapeHtml(j.name)}</option>`).join('');
+    if(jobs.length > 0) $('shiftRate').value = jobs[0].rate;
+  }
+
+  $('addJobBtn').addEventListener('click', () => {
+    const name = $('jobName').value.trim();
+    const rate = parseFloat($('jobRate').value);
+    if(!name || !(rate >= 0)){ alert('Enter a job name and hourly rate.'); return; }
+    jobs.push({ id: uid(), name, rate });
+    $('jobName').value = ''; $('jobRate').value = '';
+    saveLocal(); renderJobList(); populateShiftJobSelect(); pushToCloud(true);
+  });
+
+  $('shiftJobSelect').addEventListener('change', () => {
+    const opt = $('shiftJobSelect').selectedOptions[0];
+    if(opt) $('shiftRate').value = opt.dataset.rate;
+  });
+
+  $('addShiftBtn').addEventListener('click', () => {
+    if(jobs.length === 0){ alert('Add a job first.'); return; }
+    const jobId = $('shiftJobSelect').value;
+    const dateVal = $('shiftDate').value;
+    const hours = parseFloat($('shiftHours').value);
+    const rate = parseFloat($('shiftRate').value);
+    if(!dateVal || !(hours > 0) || !(rate >= 0)){ alert('Fill in date, hours, and rate.'); return; }
+    shifts.unshift({
+      id: uid(), jobId, date: new Date(dateVal + 'T12:00:00').toISOString(),
+      hours, rate, note: $('shiftNote').value.trim(), loggedTxnId: null
+    });
+    $('shiftHours').value = ''; $('shiftNote').value = '';
+    saveLocal(); renderShiftList(); pushToCloud(true);
+  });
+
+  function shiftsInBrowseMonth(){
+    return shifts.filter(s => {
+      const d = new Date(s.date);
+      return d.getFullYear() === shiftBrowse.year && d.getMonth() === shiftBrowse.month;
+    }).sort((a,b) => new Date(b.date) - new Date(a.date));
+  }
+
+  function renderShiftList(){
+    $('shiftMonthLabel').textContent = MONTH_NAMES[shiftBrowse.month] + ' ' + shiftBrowse.year;
+    const list = shiftsInBrowseMonth();
+    const totalHours = list.reduce((s,x) => s + x.hours, 0);
+    const totalPay = list.reduce((s,x) => s + x.hours * x.rate, 0);
+    $('shiftTotals').textContent = `${totalHours.toFixed(1)} hrs logged · ${fmt(totalPay)} estimated`;
+
+    const el = $('shiftList');
+    if(list.length === 0){ el.innerHTML = '<div class="hint">No shifts logged this month.</div>'; return; }
+    el.innerHTML = list.map(s => {
+      const job = jobs.find(j => j.id === s.jobId);
+      const pay = s.hours * s.rate;
+      return `
+        <div class="shift-row">
+          <div class="shift-top">
+            <div>
+              <div class="shift-job">${job ? escapeHtml(job.name) : 'Unknown job'}</div>
+              <div class="shift-date">${new Date(s.date).toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'})}${s.note ? ' · ' + escapeHtml(s.note) : ''}</div>
+            </div>
+            <div class="shift-pay">${fmt(pay)}</div>
+          </div>
+          <div class="shift-meta">
+            <div class="shift-hours">${s.hours} hrs @ ${fmt(s.rate)}/hr</div>
+            <div class="shift-actions">
+              ${s.loggedTxnId ? '<span class="shift-tag">logged as income</span>' : `<span class="mini-btn" data-log="${s.id}">log as income</span>`}
+              <span class="mini-del" data-del="${s.id}">×</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    el.querySelectorAll('[data-log]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const s = shifts.find(x => x.id === btn.dataset.log);
+        if(!s) return;
+        const job = jobs.find(j => j.id === s.jobId);
+        const entry = {
+          id: uid(), type: 'income', amount: Math.round(s.hours * s.rate * 100) / 100,
+          category: job ? job.name : 'Other income', note: `Shift ${new Date(s.date).toLocaleDateString('en-US')} · ${s.hours} hrs`,
+          date: s.date, debtId: null
+        };
+        txns.unshift(entry);
+        s.loggedTxnId = entry.id;
+        saveLocal(); buildFilterChips(); render(); renderShiftList(); pushToCloud(true);
+      });
+    });
+    el.querySelectorAll('[data-del]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        shifts = shifts.filter(s => s.id !== btn.dataset.del);
+        deletedShiftIds.push(btn.dataset.del);
+        saveLocal(); renderShiftList(); pushToCloud(true);
+      });
+    });
+  }
+
+  $('shiftMonthPrev').addEventListener('click', () => {
+    shiftBrowse.month--; if(shiftBrowse.month < 0){ shiftBrowse.month = 11; shiftBrowse.year--; }
+    renderShiftList();
+  });
+  $('shiftMonthNext').addEventListener('click', () => {
+    shiftBrowse.month++; if(shiftBrowse.month > 11){ shiftBrowse.month = 0; shiftBrowse.year++; }
+    renderShiftList();
+  });
+
+  function renderWork(){
+    renderJobList();
+    populateShiftJobSelect();
+    renderShiftList();
+  }
+
+  /* ---------- debt tracker ---------- */
+  function renderDebtList(){
+    const el = $('debtList');
+    if(debts.length === 0){ el.innerHTML = '<div class="hint">No cards or loans added yet.</div>'; return; }
+    const sorted = [...debts].sort((a,b) => b.balance - a.balance);
+    el.innerHTML = sorted.map(d => {
+      const payments = txns.filter(t => t.debtId === d.id).sort((a,b) => new Date(b.date)-new Date(a.date));
+      const lastPay = payments[0];
+      return `
+      <div class="src-item" style="flex-wrap:wrap;">
+        <span class="src-name">
+          ${escapeHtml(d.name)} — ${fmt(d.balance)} owing
+          ${lastPay ? `<div class="debt-hist">Last payment ${fmt(lastPay.amount)} on ${new Date(lastPay.date).toLocaleDateString('en-US')} · ${payments.length} payment${payments.length>1?'s':''} logged</div>` : `<div class="debt-hist">No payments logged yet</div>`}
+        </span>
+        <span class="mini-btn" data-edit="${d.id}">edit</span>
+        <span class="src-del" data-id="${d.id}">×</span>
+      </div>
+    `;}).join('');
+    el.querySelectorAll('.src-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        debts = debts.filter(d => d.id !== btn.dataset.id);
+        deletedDebtIds.push(btn.dataset.id);
+        saveLocal(); renderDebtList(); populateDebtLinkSelect(); render(); pushToCloud(true);
+      });
+    });
+    el.querySelectorAll('[data-edit]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const d = debts.find(x => x.id === btn.dataset.edit);
+        if(!d) return;
+        editingDebtId = d.id;
+        $('debtName').value = d.name;
+        $('debtBalance').value = d.balance;
+        $('addDebtBtn').textContent = 'Update debt';
+        $('debtName').scrollIntoView({behavior:'smooth', block:'center'});
+      });
+    });
+  }
+
+  function renderDebtTotal(){
+    $('debtTotalDisplay').textContent = fmt(debts.reduce((s,d) => s + d.balance, 0));
   }
 
   $('addDebtBtn').addEventListener('click', () => {
     const name = $('debtName').value.trim();
     const balance = parseFloat($('debtBalance').value);
-    const apr = parseFloat($('debtApr').value);
-    const minPayment = parseFloat($('debtMin').value);
-    if(!name || !(balance >= 0) || !(apr >= 0) || !(minPayment >= 0)){
-      alert('Fill in name, balance, APR, and minimum payment.');
+    if(!name || !(balance >= 0)){
+      alert('Fill in a name and balance.');
       return;
     }
-    debts.push({ id: uid(), name, balance, apr, minPayment });
-    $('debtName').value = ''; $('debtBalance').value = ''; $('debtApr').value = ''; $('debtMin').value = '';
-    saveLocal(); renderDebtList(); renderDebtPlan(); pushToCloud(true);
+    if(editingDebtId){
+      const d = debts.find(x => x.id === editingDebtId);
+      if(d){ d.name = name; d.balance = balance; }
+      editingDebtId = null;
+      $('addDebtBtn').textContent = 'Add debt';
+    } else {
+      debts.push({ id: uid(), name, balance });
+    }
+    $('debtName').value = ''; $('debtBalance').value = '';
+    saveLocal(); renderDebtList(); renderDebtTotal(); populateDebtLinkSelect(); render(); pushToCloud(true);
   });
-
-  function renderDebtPlan(){
-    const planEl = $('debtPlan');
-    const hintEl = $('debtHint');
-    if(debts.length === 0){
-      planEl.innerHTML = '<div class="hint">Add your cards and loans above to get a payoff order.</div>';
-      hintEl.textContent = '';
-      return;
-    }
-    const b = computeBudget();
-    const totalMin = debts.reduce((s,d) => s + d.minPayment, 0);
-    const totalBalance = debts.reduce((s,d) => s + d.balance, 0);
-    const weightedApr = totalBalance > 0 ? debts.reduce((s,d) => s + d.apr * d.balance, 0) / totalBalance : 0;
-    const incomeLeftover = b ? b.leftover : 0;
-    const extra = Math.max(incomeLeftover - totalMin, 0);
-
-    const sorted = [...debts].sort((a,b) => b.apr - a.apr);
-    let remaining = extra;
-    const plan = sorted.map((d, i) => {
-      let suggested = d.minPayment;
-      let note = 'Minimum payment';
-      if(i === 0 && remaining > 0){
-        const room = Math.max(d.balance - d.minPayment, 0);
-        const add = Math.min(remaining, room);
-        suggested = d.minPayment + add;
-        note = 'Highest rate — extra goes here first (avalanche method)';
-        remaining -= add;
-      }
-      return { ...d, suggested, note };
-    });
-
-    planEl.innerHTML = plan.map(d => `
-      <div class="bud-row">
-        <div class="bud-left">
-          <div class="bud-cat">${escapeHtml(d.name)}${d === plan[0] && extra > 0 ? '<span class="bud-tag">priority</span>' : ''}</div>
-          <div class="bud-note">${d.apr}% APR · ${d.note}</div>
-        </div>
-        <div class="bud-amt">${fmt(d.suggested)}</div>
-      </div>
-    `).join('') + `
-      <div class="bud-total ok">
-        <span>Total to debts this month</span>
-        <span>${fmt(plan.reduce((s,d)=>s+d.suggested,0))}</span>
-      </div>
-    `;
-    hintEl.textContent = extra > 0
-      ? `You've got roughly ${fmt(extra)} left after regular expenses and minimums — it's aimed at your highest-APR debt (${sorted[0].name} at ${sorted[0].apr}%) first. Once that's paid off, the next-highest rate becomes the target.`
-      : `Right now your average income only covers minimum payments and regular expenses — no extra to accelerate payoff yet. Total debt: ${fmt(totalBalance)}, blended rate: ${weightedApr.toFixed(1)}%.`;
-  }
 
   function renderDebts(){
     renderDebtList();
-    renderDebtPlan();
+    renderDebtTotal();
   }
 
   /* ---------- budget engine ---------- */
@@ -965,9 +1198,9 @@
 
     const summary = b.rows.map(r => `${r.cat}: avg $${r.avg.toFixed(2)}/mo${r.isHigh ? ' (flagged high interest)' : ''}`).join('\n');
     const debtSummary = debts.length
-      ? debts.map(d => `${d.name}: balance $${d.balance.toFixed(2)}, ${d.apr}% APR, min payment $${d.minPayment.toFixed(2)}`).join('\n')
+      ? debts.map(d => `${d.name}: $${d.balance.toFixed(2)} owing`).join('\n')
       : 'None logged.';
-    const prompt = `My average monthly income is $${b.avgMonthlyIncome.toFixed(2)} across ${b.numMonths} months of tracked data.\nMy expense categories and average monthly spend:\n${summary}\nLeftover after suggested budget: $${b.leftover.toFixed(2)}.\nMy credit cards and loans:\n${debtSummary}\nGive me 3-4 short, practical, plain-text tips for this budget, prioritizing paying down the highest-interest debt fastest (avalanche method). No markdown, no headers, under 130 words.`;
+    const prompt = `My average monthly income is $${b.avgMonthlyIncome.toFixed(2)} across ${b.numMonths} months of tracked data.\nMy expense categories and average monthly spend:\n${summary}\nLeftover after suggested budget: $${b.leftover.toFixed(2)}.\nMy credit cards and loans (balances owing):\n${debtSummary}\nGive me 3-4 short, practical, plain-text tips for this budget, prioritizing paying down debt faster where there's room, especially anything flagged high interest above. No markdown, no headers, under 130 words.`;
 
     try{
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1024,10 +1257,15 @@
   /* ---------- init ---------- */
   (function init(){
     loadLocal();
+    const todayStr = new Date().toISOString().slice(0,10);
+    $('dateInput').value = todayStr;
+    $('shiftDate').value = todayStr;
     populateCategorySelect();
+    populateDebtLinkSelect();
     buildFilterChips();
     render();
     renderDebts();
+    renderWork();
     if(syncUrl){
       $('syncUrlInput').value = syncUrl;
       $('copyLinkBtn').style.display = 'block';
