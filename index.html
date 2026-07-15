@@ -365,6 +365,11 @@
       <div id="shiftTotals" class="hint" style="margin-top:0; margin-bottom:10px;"></div>
       <div id="shiftList"></div>
     </div>
+
+    <div class="card">
+      <div class="card-title">Totals by job (all time)</div>
+      <div id="jobTotals"></div>
+    </div>
   </div>
 
   <div class="panel" id="breakdownPanel">
@@ -981,7 +986,7 @@
       hours, rate, note: $('shiftNote').value.trim(), loggedTxnId: null
     });
     $('shiftHours').value = ''; $('shiftNote').value = '';
-    saveLocal(); renderShiftList(); pushToCloud(true);
+    saveLocal(); renderShiftList(); renderJobTotals(); pushToCloud(true);
   });
 
   function shiftsInBrowseMonth(){
@@ -1042,7 +1047,7 @@
       btn.addEventListener('click', () => {
         shifts = shifts.filter(s => s.id !== btn.dataset.del);
         deletedShiftIds.push(btn.dataset.del);
-        saveLocal(); renderShiftList(); pushToCloud(true);
+        saveLocal(); renderShiftList(); renderJobTotals(); pushToCloud(true);
       });
     });
   }
@@ -1056,10 +1061,37 @@
     renderShiftList();
   });
 
+  function renderJobTotals(){
+    const el = $('jobTotals');
+    if(jobs.length === 0){ el.innerHTML = '<div class="hint">Add a job above to see totals here.</div>'; return; }
+    const rows = jobs.map(j => {
+      const jobShifts = shifts.filter(s => s.jobId === j.id);
+      const totalHours = jobShifts.reduce((s,x) => s + x.hours, 0);
+      const totalPay = jobShifts.reduce((s,x) => s + x.hours * x.rate, 0);
+      return { name: j.name, totalHours, totalPay };
+    }).sort((a,b) => b.totalPay - a.totalPay);
+
+    el.innerHTML = rows.map(r => `
+      <div class="bud-row">
+        <div class="bud-left">
+          <div class="bud-cat">${escapeHtml(r.name)}</div>
+          <div class="bud-note">${r.totalHours.toFixed(1)} hrs total</div>
+        </div>
+        <div class="bud-amt">${fmt(r.totalPay)}</div>
+      </div>
+    `).join('') + `
+      <div class="bud-total ok">
+        <span>All jobs combined</span>
+        <span>${fmt(rows.reduce((s,r)=>s+r.totalPay,0))}</span>
+      </div>
+    `;
+  }
+
   function renderWork(){
     renderJobList();
     populateShiftJobSelect();
     renderShiftList();
+    renderJobTotals();
   }
 
   /* ---------- debt tracker ---------- */
