@@ -539,6 +539,17 @@
     <div class="hint">
       Once you connect a device here, it stays connected — no repeat login, it just quietly syncs every ~20 seconds and whenever you reopen the app. To add a second or third phone, connect it here once too, using the same link (tap "Copy link" below after connecting this one, then AirDrop or text it over).
     </div>
+
+    <div class="card">
+      <div class="card-title">Full backup</div>
+      <div class="hint" style="margin-top:0; margin-bottom:12px;">Saves everything — transactions, debts, jobs, shifts, schedule, reminders, categories — as one file. Use this before switching devices or updating the app, even if you don't use cloud sync.</div>
+      <button class="add-btn secondary" id="exportBackupBtn">Download full backup</button>
+      <div class="field-row" style="margin-top:10px;">
+        <input type="file" accept="application/json" class="text-input" id="restoreFileInput" style="padding:9px 10px;">
+      </div>
+      <button class="add-btn secondary" id="restoreBackupBtn">Restore from backup file</button>
+      <div class="hint" id="restoreStatus"></div>
+    </div>
   </div>
 
 </div>
@@ -748,6 +759,45 @@
       if(document.visibilityState === 'visible') pullFromCloud();
     });
   }
+
+  /* ---------- full backup / restore ---------- */
+  function currentBackupPayload(){
+    return { txns, deletedIds, debts, deletedDebtIds, jobs, deletedJobIds, shifts, deletedShiftIds, scheduleTemplate, scheduleEntries, deletedScheduleIds, reminders, deletedReminderIds, categories, updatedAt: new Date().toISOString() };
+  }
+
+  $('exportBackupBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(currentBackupPayload(), null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `ledger-backup-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  $('restoreBackupBtn').addEventListener('click', () => {
+    const file = $('restoreFileInput').files[0];
+    if(!file){ $('restoreStatus').textContent = 'Choose a backup file first.'; return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const data = JSON.parse(reader.result);
+        mergeState(data);
+        populateCategorySelect();
+        populateDebtLinkSelect();
+        buildFilterChips();
+        render();
+        renderDebts();
+        renderWork();
+        renderSchedule();
+        renderDueBanner();
+        pushToCloud(true);
+        $('restoreStatus').textContent = 'Restored — everything from that backup is merged in now.';
+      }catch(e){
+        $('restoreStatus').textContent = 'Could not read that file — make sure it\'s a Ledger backup JSON.';
+      }
+    };
+    reader.readAsText(file);
+  });
 
   $('connectSyncBtn').addEventListener('click', async () => {
     const val = $('syncUrlInput').value.trim();
