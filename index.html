@@ -190,6 +190,58 @@
   .mini-btn{font-size:11px; padding:5px 10px; border-radius:100px; border:1px solid var(--border-2); background:var(--surface-2); color:var(--gold); cursor:pointer;}
   .mini-del{color:var(--text-faint); font-size:16px; cursor:pointer; padding:2px 6px;}
   .debt-hist{font-size:11.5px; color:var(--text-faint); margin-top:2px;}
+
+  .tmpl-row{display:flex; align-items:center; justify-content:space-between; padding:9px 2px; border-bottom:1px solid var(--border);}
+  .tmpl-row:last-child{border-bottom:none;}
+  .tmpl-time{font-family:var(--mono); font-size:12.5px; color:var(--gold); flex:0 0 auto; margin-right:10px;}
+  .tmpl-label{font-size:14px; flex:1;}
+
+  .day-sched{margin-top:14px;}
+  .day-sched-label{font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;}
+  .sched-item{display:flex; align-items:center; justify-content:space-between; padding:8px 4px; border-bottom:1px solid var(--border);}
+  .sched-item:last-child{border-bottom:none;}
+  .sched-item-left{display:flex; gap:10px; align-items:baseline;}
+  .sched-time{font-family:var(--mono); font-size:12px; color:var(--gold);}
+  .sched-label{font-size:13.5px;}
+
+  .rem-row{display:flex; align-items:center; justify-content:space-between; padding:10px 2px; border-bottom:1px solid var(--border); gap:10px;}
+  .rem-row:last-child{border-bottom:none;}
+  .rem-name{font-size:14px; font-weight:600;}
+  .rem-sub{font-size:11.5px; color:var(--text-faint); margin-top:2px;}
+  .rem-due{font-size:11px; padding:3px 9px; border-radius:100px; font-weight:600; flex:0 0 auto; white-space:nowrap;}
+  .rem-due.soon{background:var(--red-dim); color:var(--red);}
+  .rem-due.upcoming{background:var(--surface-2); color:var(--text-dim); border:1px solid var(--border-2);}
+
+  .due-banner{
+    display:flex; align-items:center; justify-content:space-between; background:var(--red-dim);
+    border:1px solid var(--red); border-radius:10px; padding:10px 14px; margin:14px 4px 0; font-size:12.5px; color:var(--red);
+  }
+  .due-banner .x{cursor:pointer; color:var(--red); font-size:16px; opacity:0.8;}
+
+  .cal-head{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:14px; margin-bottom:6px;}
+  .cal-head span{text-align:center; font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.04em; font-weight:600;}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+  .cal-cell{
+    aspect-ratio:1/1; border:1px solid var(--border); border-radius:8px; background:var(--surface-2);
+    padding:4px; display:flex; flex-direction:column; cursor:pointer; overflow:hidden; position:relative;
+  }
+  .cal-cell.empty{background:transparent; border-color:transparent; cursor:default;}
+  .cal-cell.today{border-color:var(--gold); border-width:1.5px;}
+  .cal-cell.selected{background:var(--surface); border-color:var(--gold); box-shadow:0 0 0 1px var(--gold-dim) inset;}
+  .cal-cell.has-shifts{border-color:var(--border-2);}
+  .cal-daynum{font-family:var(--mono); font-size:10px; color:var(--text-dim); font-weight:600;}
+  .cal-cell.today .cal-daynum{color:var(--gold);}
+  .cal-chips{display:flex; flex-direction:column; gap:2px; margin-top:2px; flex:1; overflow:hidden;}
+  .cal-chip{
+    font-size:8.5px; padding:1px 4px; border-radius:4px; background:var(--green-dim); color:var(--green);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; line-height:1.5;
+  }
+  .cal-more{font-size:8px; color:var(--text-faint);}
+  .cal-daypay{font-size:8px; color:var(--gold); font-family:var(--mono); margin-top:auto; font-weight:600;}
+
+  .day-detail-card{background:var(--surface-2); border:1px solid var(--border-2); border-radius:12px; padding:14px; margin-top:14px;}
+  .day-detail-title{font-size:13px; font-weight:600; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;}
+  .day-detail-title .x{cursor:pointer; color:var(--text-faint); font-size:16px;}
 </style>
 </head>
 <body>
@@ -217,6 +269,8 @@
     </div>
   </div>
 
+  <div id="dueSoonBanner"></div>
+
   <div class="periods" id="periods">
     <div class="period-btn active" data-period="all">All</div>
     <div class="period-btn" data-period="month">This month</div>
@@ -230,6 +284,7 @@
     <div class="tab" data-panel="debtPanel">Debts</div>
     <div class="tab" data-panel="monthsPanel">Months</div>
     <div class="tab" data-panel="workPanel">Work</div>
+    <div class="tab" data-panel="schedulePanel">Schedule</div>
     <div class="tab" data-panel="breakdownPanel">Breakdown</div>
     <div class="tab" data-panel="sourcesPanel">Sources</div>
     <div class="tab" data-panel="syncPanel">Sync</div>
@@ -348,6 +403,9 @@
         <input type="number" inputmode="decimal" class="text-input" id="shiftRate" placeholder="Rate $/hr">
       </div>
       <div class="field-row">
+        <input type="number" inputmode="decimal" class="text-input" id="shiftOt" placeholder="OT hours (optional, 1.5x rate)">
+      </div>
+      <div class="field-row">
         <input type="text" class="note-input" id="shiftNote" placeholder="Note (optional)">
       </div>
       <button class="add-btn" id="addShiftBtn">Log shift</button>
@@ -355,20 +413,81 @@
 
     <div class="card">
       <div class="card-title">
-        <span>Shift log</span>
+        <span>Schedule</span>
         <span style="display:flex; align-items:center; gap:10px;">
           <span class="icon-btn" id="shiftMonthPrev">‹</span>
           <span id="shiftMonthLabel" style="font-family:var(--mono); color:var(--text); font-size:12px;"></span>
           <span class="icon-btn" id="shiftMonthNext">›</span>
         </span>
       </div>
-      <div id="shiftTotals" class="hint" style="margin-top:0; margin-bottom:10px;"></div>
-      <div id="shiftList"></div>
+      <div id="shiftTotals" class="hint" style="margin-top:0; margin-bottom:12px;"></div>
+      <div class="cal-head" id="calHead"></div>
+      <div class="cal-grid" id="shiftCalendar"></div>
+      <div id="selectedDayDetail"></div>
     </div>
 
     <div class="card">
-      <div class="card-title">Totals by job (all time)</div>
+      <div class="card-title">
+        <span>Totals by job</span>
+        <span class="chips" id="jobTotalsPeriod" style="margin:0;"></span>
+      </div>
       <div id="jobTotals"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="schedulePanel">
+    <div class="card">
+      <div class="card-title">Day template</div>
+      <div class="hint" style="margin-top:0; margin-bottom:10px;">Build one day's schedule once, then stamp it across any date range below.</div>
+      <div id="templateList"></div>
+      <div class="field-row" style="margin-top:10px;">
+        <input type="time" class="text-input" id="tmplTime">
+        <input type="text" class="text-input" id="tmplLabel" placeholder="e.g. PSW shift 9-5">
+      </div>
+      <button class="add-btn secondary" id="addTmplBtn">Add to template</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Apply to calendar</div>
+      <div class="field-row">
+        <input type="date" class="text-input" id="applyStart" placeholder="Start">
+        <input type="date" class="text-input" id="applyEnd" placeholder="End">
+      </div>
+      <div class="chips" id="weekdayChips" style="margin-top:0;"></div>
+      <button class="add-btn" id="applyTmplBtn" style="margin-top:12px;">Apply template to range</button>
+      <div class="hint">This replaces any existing schedule entries already in the chosen date range — safe to re-apply if you need to adjust.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Calendar</span>
+        <span style="display:flex; align-items:center; gap:10px;">
+          <span class="icon-btn" id="schedMonthPrev">‹</span>
+          <span id="schedMonthLabel" style="font-family:var(--mono); color:var(--text); font-size:12px;"></span>
+          <span class="icon-btn" id="schedMonthNext">›</span>
+        </span>
+      </div>
+      <div id="scheduleList"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Bill reminders</div>
+      <div id="remindersList"></div>
+      <div class="field-row" style="margin-top:12px;">
+        <input type="text" class="text-input" id="remName" placeholder="e.g. Car insurance">
+        <input type="number" inputmode="decimal" class="text-input" id="remAmount" placeholder="Amount $ (optional)">
+      </div>
+      <div class="field-row">
+        <select id="remRecurrence">
+          <option value="monthly">Repeats monthly</option>
+          <option value="once">One-time date</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <input type="number" class="text-input" id="remDay" placeholder="Day of month (1-31)" min="1" max="31">
+        <input type="date" class="text-input" id="remDate" style="display:none;">
+      </div>
+      <button class="add-btn secondary" id="addRemBtn">Add reminder</button>
     </div>
   </div>
 
@@ -439,6 +558,13 @@
   let deletedShiftIds = [];
   let editingDebtId = null;
   let shiftBrowse = { year: new Date().getFullYear(), month: new Date().getMonth() };
+  let scheduleTemplate = [];
+  let scheduleEntries = [];
+  let deletedScheduleIds = [];
+  let reminders = [];
+  let deletedReminderIds = [];
+  let selectedWeekdays = new Set([0,1,2,3,4,5,6]);
+  let schedBrowse = { year: new Date().getFullYear(), month: new Date().getMonth() };
   let categories = { income: [...DEFAULT_INCOME], expense: [...DEFAULT_EXPENSE], highInterest: [] };
   let syncUrl = '';
   let currentType = 'income';
@@ -470,6 +596,11 @@
     try{ deletedJobIds = JSON.parse(localStorage.getItem('ledger_deleted_jobs') || '[]'); }catch(e){ deletedJobIds = []; }
     try{ shifts = JSON.parse(localStorage.getItem('ledger_shifts') || '[]'); }catch(e){ shifts = []; }
     try{ deletedShiftIds = JSON.parse(localStorage.getItem('ledger_deleted_shifts') || '[]'); }catch(e){ deletedShiftIds = []; }
+    try{ scheduleTemplate = JSON.parse(localStorage.getItem('ledger_sched_template') || '[]'); }catch(e){ scheduleTemplate = []; }
+    try{ scheduleEntries = JSON.parse(localStorage.getItem('ledger_sched_entries') || '[]'); }catch(e){ scheduleEntries = []; }
+    try{ deletedScheduleIds = JSON.parse(localStorage.getItem('ledger_deleted_sched') || '[]'); }catch(e){ deletedScheduleIds = []; }
+    try{ reminders = JSON.parse(localStorage.getItem('ledger_reminders') || '[]'); }catch(e){ reminders = []; }
+    try{ deletedReminderIds = JSON.parse(localStorage.getItem('ledger_deleted_reminders') || '[]'); }catch(e){ deletedReminderIds = []; }
     try{
       const c = JSON.parse(localStorage.getItem('ledger_categories'));
       if(c && c.income && c.expense) categories = { income:c.income, expense:c.expense, highInterest: c.highInterest || [] };
@@ -488,6 +619,11 @@
     localStorage.setItem('ledger_deleted_jobs', JSON.stringify(deletedJobIds));
     localStorage.setItem('ledger_shifts', JSON.stringify(shifts));
     localStorage.setItem('ledger_deleted_shifts', JSON.stringify(deletedShiftIds));
+    localStorage.setItem('ledger_sched_template', JSON.stringify(scheduleTemplate));
+    localStorage.setItem('ledger_sched_entries', JSON.stringify(scheduleEntries));
+    localStorage.setItem('ledger_deleted_sched', JSON.stringify(deletedScheduleIds));
+    localStorage.setItem('ledger_reminders', JSON.stringify(reminders));
+    localStorage.setItem('ledger_deleted_reminders', JSON.stringify(deletedReminderIds));
     localStorage.setItem('ledger_categories', JSON.stringify(categories));
     localStorage.setItem('ledger_updated_at', new Date().toISOString());
   }
@@ -510,6 +646,11 @@
     const remoteDeletedJobs = Array.isArray(remote.deletedJobIds) ? remote.deletedJobIds : [];
     const remoteShifts = Array.isArray(remote.shifts) ? remote.shifts : [];
     const remoteDeletedShifts = Array.isArray(remote.deletedShiftIds) ? remote.deletedShiftIds : [];
+    const remoteSchedTemplate = Array.isArray(remote.scheduleTemplate) ? remote.scheduleTemplate : [];
+    const remoteSchedEntries = Array.isArray(remote.scheduleEntries) ? remote.scheduleEntries : [];
+    const remoteDeletedSched = Array.isArray(remote.deletedScheduleIds) ? remote.deletedScheduleIds : [];
+    const remoteReminders = Array.isArray(remote.reminders) ? remote.reminders : [];
+    const remoteDeletedReminders = Array.isArray(remote.deletedReminderIds) ? remote.deletedReminderIds : [];
     const remoteCats = remote.categories || { income:[], expense:[], highInterest:[] };
 
     const byId = {};
@@ -536,6 +677,23 @@
     deletedShiftIds = Array.from(new Set([...deletedShiftIds, ...remoteDeletedShifts]));
     shifts = Object.values(shiftById).filter(s => !deletedShiftIds.includes(s.id));
 
+    const tmplById = {};
+    scheduleTemplate.forEach(t => tmplById[t.id] = t);
+    remoteSchedTemplate.forEach(t => { if(!tmplById[t.id]) tmplById[t.id] = t; });
+    scheduleTemplate = Object.values(tmplById);
+
+    const schedById = {};
+    scheduleEntries.forEach(s => schedById[s.id] = s);
+    remoteSchedEntries.forEach(s => { if(!schedById[s.id]) schedById[s.id] = s; });
+    deletedScheduleIds = Array.from(new Set([...deletedScheduleIds, ...remoteDeletedSched]));
+    scheduleEntries = Object.values(schedById).filter(s => !deletedScheduleIds.includes(s.id));
+
+    const remById = {};
+    reminders.forEach(r => remById[r.id] = r);
+    remoteReminders.forEach(r => { if(!remById[r.id]) remById[r.id] = r; });
+    deletedReminderIds = Array.from(new Set([...deletedReminderIds, ...remoteDeletedReminders]));
+    reminders = Object.values(remById).filter(r => !deletedReminderIds.includes(r.id));
+
     categories.income = Array.from(new Set([...categories.income, ...(remoteCats.income||[])]));
     categories.expense = Array.from(new Set([...categories.expense, ...(remoteCats.expense||[])]));
     categories.highInterest = Array.from(new Set([...categories.highInterest, ...(remoteCats.highInterest||[])]));
@@ -561,6 +719,7 @@
       renderBudget();
       renderDebts();
       renderWork();
+      renderSchedule();
     }catch(e){
       setSyncStatus('err', 'Sync failed — check the URL or your connection');
     }
@@ -570,7 +729,7 @@
     if(!syncUrl) return;
     if(!silent) setSyncStatus('busy', 'Syncing…');
     try{
-      const payload = JSON.stringify({ txns, deletedIds, debts, deletedDebtIds, jobs, deletedJobIds, shifts, deletedShiftIds, categories, updatedAt: new Date().toISOString() });
+      const payload = JSON.stringify({ txns, deletedIds, debts, deletedDebtIds, jobs, deletedJobIds, shifts, deletedShiftIds, scheduleTemplate, scheduleEntries, deletedScheduleIds, reminders, deletedReminderIds, categories, updatedAt: new Date().toISOString() });
       await fetch(syncUrl, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: payload });
       if(!silent){
         setSyncStatus('ok', 'Synced');
@@ -623,6 +782,7 @@
       if(tab.dataset.panel === 'debtPanel') renderDebts();
       if(tab.dataset.panel === 'monthsPanel') renderMonthsList();
       if(tab.dataset.panel === 'workPanel') renderWork();
+      if(tab.dataset.panel === 'schedulePanel') renderSchedule();
     });
   });
 
@@ -980,102 +1140,204 @@
     const dateVal = $('shiftDate').value;
     const hours = parseFloat($('shiftHours').value);
     const rate = parseFloat($('shiftRate').value);
+    const otHours = parseFloat($('shiftOt').value) || 0;
     if(!dateVal || !(hours > 0) || !(rate >= 0)){ alert('Fill in date, hours, and rate.'); return; }
     shifts.unshift({
       id: uid(), jobId, date: new Date(dateVal + 'T12:00:00').toISOString(),
-      hours, rate, note: $('shiftNote').value.trim(), loggedTxnId: null
+      hours, otHours, rate, note: $('shiftNote').value.trim(), loggedTxnId: null
     });
-    $('shiftHours').value = ''; $('shiftNote').value = '';
-    saveLocal(); renderShiftList(); renderJobTotals(); pushToCloud(true);
+    $('shiftHours').value = ''; $('shiftOt').value = ''; $('shiftNote').value = '';
+    saveLocal(); renderShiftCalendar(); renderJobTotals(); pushToCloud(true);
   });
+
+  function shiftPay(s){
+    return (s.hours * s.rate) + ((s.otHours || 0) * s.rate * 1.5);
+  }
+
+  function shiftDateKey(s){
+    return new Date(s.date).toISOString().slice(0,10);
+  }
 
   function shiftsInBrowseMonth(){
     return shifts.filter(s => {
       const d = new Date(s.date);
       return d.getFullYear() === shiftBrowse.year && d.getMonth() === shiftBrowse.month;
-    }).sort((a,b) => new Date(b.date) - new Date(a.date));
+    });
   }
 
-  function renderShiftList(){
+  let selectedCalDate = null;
+
+  function renderShiftCalendar(){
     $('shiftMonthLabel').textContent = MONTH_NAMES[shiftBrowse.month] + ' ' + shiftBrowse.year;
     const list = shiftsInBrowseMonth();
     const totalHours = list.reduce((s,x) => s + x.hours, 0);
-    const totalPay = list.reduce((s,x) => s + x.hours * x.rate, 0);
-    $('shiftTotals').textContent = `${totalHours.toFixed(1)} hrs logged · ${fmt(totalPay)} estimated`;
+    const totalOt = list.reduce((s,x) => s + (x.otHours||0), 0);
+    const totalPay = list.reduce((s,x) => s + shiftPay(x), 0);
+    $('shiftTotals').textContent = `${totalHours.toFixed(1)} hrs${totalOt > 0 ? ' + ' + totalOt.toFixed(1) + ' OT hrs' : ''} logged · ${fmt(totalPay)} estimated`;
 
-    const el = $('shiftList');
-    if(list.length === 0){ el.innerHTML = '<div class="hint">No shifts logged this month.</div>'; return; }
-    el.innerHTML = list.map(s => {
-      const job = jobs.find(j => j.id === s.jobId);
-      const pay = s.hours * s.rate;
-      return `
-        <div class="shift-row">
-          <div class="shift-top">
-            <div>
-              <div class="shift-job">${job ? escapeHtml(job.name) : 'Unknown job'}</div>
-              <div class="shift-date">${new Date(s.date).toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'})}${s.note ? ' · ' + escapeHtml(s.note) : ''}</div>
-            </div>
-            <div class="shift-pay">${fmt(pay)}</div>
+    $('calHead').innerHTML = WEEKDAY_LABELS.map(w => `<span>${w}</span>`).join('');
+
+    const byDate = {};
+    list.forEach(s => { const k = shiftDateKey(s); if(!byDate[k]) byDate[k] = []; byDate[k].push(s); });
+
+    const firstOfMonth = new Date(shiftBrowse.year, shiftBrowse.month, 1);
+    const startOffset = firstOfMonth.getDay();
+    const daysInMonth = new Date(shiftBrowse.year, shiftBrowse.month + 1, 0).getDate();
+    const todayKey = new Date().toISOString().slice(0,10);
+
+    let cells = '';
+    for(let i = 0; i < startOffset; i++) cells += '<div class="cal-cell empty"></div>';
+    for(let day = 1; day <= daysInMonth; day++){
+      const dateKey = `${shiftBrowse.year}-${String(shiftBrowse.month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      const dayShifts = byDate[dateKey] || [];
+      const dayPay = dayShifts.reduce((s,x) => s + shiftPay(x), 0);
+      const classes = ['cal-cell'];
+      if(dateKey === todayKey) classes.push('today');
+      if(dayShifts.length > 0) classes.push('has-shifts');
+      if(dateKey === selectedCalDate) classes.push('selected');
+      const shown = dayShifts.slice(0,2);
+      const extra = dayShifts.length - shown.length;
+      cells += `
+        <div class="${classes.join(' ')}" data-date="${dateKey}">
+          <div class="cal-daynum">${day}</div>
+          <div class="cal-chips">
+            ${shown.map(s => { const j = jobs.find(x=>x.id===s.jobId); return `<div class="cal-chip">${escapeHtml(j ? j.name.slice(0,8) : '?')}</div>`; }).join('')}
+            ${extra > 0 ? `<div class="cal-more">+${extra} more</div>` : ''}
           </div>
-          <div class="shift-meta">
-            <div class="shift-hours">${s.hours} hrs @ ${fmt(s.rate)}/hr</div>
-            <div class="shift-actions">
-              ${s.loggedTxnId ? '<span class="shift-tag">logged as income</span>' : `<span class="mini-btn" data-log="${s.id}">log as income</span>`}
-              <span class="mini-del" data-del="${s.id}">×</span>
-            </div>
-          </div>
+          ${dayPay > 0 ? `<div class="cal-daypay">${fmt(dayPay)}</div>` : ''}
         </div>
       `;
-    }).join('');
+    }
+    $('shiftCalendar').innerHTML = cells;
+    $('shiftCalendar').querySelectorAll('.cal-cell:not(.empty)').forEach(cell => {
+      cell.addEventListener('click', () => {
+        selectedCalDate = cell.dataset.date === selectedCalDate ? null : cell.dataset.date;
+        renderShiftCalendar();
+      });
+    });
 
+    renderSelectedDayDetail(byDate);
+  }
+
+  function renderSelectedDayDetail(byDate){
+    const el = $('selectedDayDetail');
+    if(!selectedCalDate){ el.innerHTML = ''; return; }
+    const dayShifts = (byDate || {})[selectedCalDate] || shifts.filter(s => shiftDateKey(s) === selectedCalDate);
+    const d = new Date(selectedCalDate + 'T12:00:00');
+    const label = d.toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
+
+    if(dayShifts.length === 0){
+      el.innerHTML = `
+        <div class="day-detail-card">
+          <div class="day-detail-title"><span>${label}</span><span class="x" id="closeDayDetail">×</span></div>
+          <div class="hint" style="margin-top:0;">No shifts logged. Set the date above to ${selectedCalDate} and log one.</div>
+        </div>
+      `;
+      $('closeDayDetail').addEventListener('click', () => { selectedCalDate = null; renderShiftCalendar(); });
+      return;
+    }
+
+    el.innerHTML = `
+      <div class="day-detail-card">
+        <div class="day-detail-title"><span>${label}</span><span class="x" id="closeDayDetail">×</span></div>
+        ${dayShifts.map(s => {
+          const job = jobs.find(j => j.id === s.jobId);
+          const pay = shiftPay(s);
+          return `
+            <div class="shift-row">
+              <div class="shift-top">
+                <div>
+                  <div class="shift-job">${job ? escapeHtml(job.name) : 'Unknown job'}</div>
+                  <div class="shift-date">${s.hours} hrs${s.otHours ? ' + ' + s.otHours + ' OT' : ''} @ ${fmt(s.rate)}/hr${s.note ? ' · ' + escapeHtml(s.note) : ''}</div>
+                </div>
+                <div class="shift-pay">${fmt(pay)}</div>
+              </div>
+              <div class="shift-meta">
+                <div class="shift-hours"></div>
+                <div class="shift-actions">
+                  ${s.loggedTxnId ? '<span class="shift-tag">logged as income</span>' : `<span class="mini-btn" data-log="${s.id}">log as income</span>`}
+                  <span class="mini-del" data-del="${s.id}">×</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+    $('closeDayDetail').addEventListener('click', () => { selectedCalDate = null; renderShiftCalendar(); });
     el.querySelectorAll('[data-log]').forEach(btn => {
       btn.addEventListener('click', () => {
         const s = shifts.find(x => x.id === btn.dataset.log);
         if(!s) return;
         const job = jobs.find(j => j.id === s.jobId);
         const entry = {
-          id: uid(), type: 'income', amount: Math.round(s.hours * s.rate * 100) / 100,
-          category: job ? job.name : 'Other income', note: `Shift ${new Date(s.date).toLocaleDateString('en-US')} · ${s.hours} hrs`,
+          id: uid(), type: 'income', amount: Math.round(shiftPay(s) * 100) / 100,
+          category: job ? job.name : 'Other income',
+          note: `Shift ${new Date(s.date).toLocaleDateString('en-US')} · ${s.hours} hrs${s.otHours ? ' + ' + s.otHours + ' OT' : ''}`,
           date: s.date, debtId: null
         };
         txns.unshift(entry);
         s.loggedTxnId = entry.id;
-        saveLocal(); buildFilterChips(); render(); renderShiftList(); pushToCloud(true);
+        saveLocal(); buildFilterChips(); render(); renderShiftCalendar(); pushToCloud(true);
       });
     });
     el.querySelectorAll('[data-del]').forEach(btn => {
       btn.addEventListener('click', () => {
         shifts = shifts.filter(s => s.id !== btn.dataset.del);
         deletedShiftIds.push(btn.dataset.del);
-        saveLocal(); renderShiftList(); renderJobTotals(); pushToCloud(true);
+        saveLocal(); renderShiftCalendar(); renderJobTotals(); pushToCloud(true);
       });
     });
   }
 
   $('shiftMonthPrev').addEventListener('click', () => {
     shiftBrowse.month--; if(shiftBrowse.month < 0){ shiftBrowse.month = 11; shiftBrowse.year--; }
-    renderShiftList();
+    selectedCalDate = null;
+    renderShiftCalendar();
   });
   $('shiftMonthNext').addEventListener('click', () => {
     shiftBrowse.month++; if(shiftBrowse.month > 11){ shiftBrowse.month = 0; shiftBrowse.year++; }
-    renderShiftList();
+    selectedCalDate = null;
+    renderShiftCalendar();
   });
+
+  let jobTotalsPeriod = 'all';
+  function renderJobTotalsChips(){
+    const periods = [['all','All time'],['month','This month'],['14d','Last 14 days']];
+    $('jobTotalsPeriod').innerHTML = periods.map(([key,label]) =>
+      `<div class="chip ${jobTotalsPeriod===key?'active':''}" data-period="${key}">${label}</div>`
+    ).join('');
+    $('jobTotalsPeriod').querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => { jobTotalsPeriod = chip.dataset.period; renderJobTotalsChips(); renderJobTotals(); });
+    });
+  }
+
+  function shiftInJobTotalsPeriod(s){
+    if(jobTotalsPeriod === 'all') return true;
+    const d = new Date(s.date);
+    const now = new Date();
+    if(jobTotalsPeriod === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    if(jobTotalsPeriod === '14d'){ const cutoff = new Date(now); cutoff.setDate(now.getDate()-14); return d >= cutoff; }
+    return true;
+  }
 
   function renderJobTotals(){
     const el = $('jobTotals');
     if(jobs.length === 0){ el.innerHTML = '<div class="hint">Add a job above to see totals here.</div>'; return; }
     const rows = jobs.map(j => {
-      const jobShifts = shifts.filter(s => s.jobId === j.id);
+      const jobShifts = shifts.filter(s => s.jobId === j.id && shiftInJobTotalsPeriod(s));
       const totalHours = jobShifts.reduce((s,x) => s + x.hours, 0);
-      const totalPay = jobShifts.reduce((s,x) => s + x.hours * x.rate, 0);
-      return { name: j.name, totalHours, totalPay };
+      const totalOt = jobShifts.reduce((s,x) => s + (x.otHours||0), 0);
+      const totalPay = jobShifts.reduce((s,x) => s + shiftPay(x), 0);
+      const shiftCount = jobShifts.length;
+      return { name: j.name, totalHours, totalOt, totalPay, shiftCount };
     }).sort((a,b) => b.totalPay - a.totalPay);
 
     el.innerHTML = rows.map(r => `
       <div class="bud-row">
         <div class="bud-left">
           <div class="bud-cat">${escapeHtml(r.name)}</div>
-          <div class="bud-note">${r.totalHours.toFixed(1)} hrs total</div>
+          <div class="bud-note">${r.shiftCount} shift${r.shiftCount!==1?'s':''} · ${r.totalHours.toFixed(1)} hrs${r.totalOt > 0 ? ' + ' + r.totalOt.toFixed(1) + ' OT' : ''}</div>
         </div>
         <div class="bud-amt">${fmt(r.totalPay)}</div>
       </div>
@@ -1090,8 +1352,241 @@
   function renderWork(){
     renderJobList();
     populateShiftJobSelect();
-    renderShiftList();
+    renderJobTotalsChips();
+    renderShiftCalendar();
     renderJobTotals();
+  }
+
+  /* ---------- schedule: day template + calendar + reminders ---------- */
+  function renderTemplateList(){
+    const el = $('templateList');
+    if(scheduleTemplate.length === 0){ el.innerHTML = '<div class="hint">No blocks yet — add your first below.</div>'; return; }
+    const sorted = [...scheduleTemplate].sort((a,b) => a.time.localeCompare(b.time));
+    el.innerHTML = sorted.map(t => `
+      <div class="tmpl-row">
+        <span class="tmpl-time">${formatTime(t.time)}</span>
+        <span class="tmpl-label">${escapeHtml(t.label)}</span>
+        <span class="mini-del" data-id="${t.id}">×</span>
+      </div>
+    `).join('');
+    el.querySelectorAll('.mini-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        scheduleTemplate = scheduleTemplate.filter(t => t.id !== btn.dataset.id);
+        saveLocal(); renderTemplateList(); pushToCloud(true);
+      });
+    });
+  }
+
+  function formatTime(t){
+    if(!t) return '';
+    const [h,m] = t.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${String(m).padStart(2,'0')} ${period}`;
+  }
+
+  $('addTmplBtn').addEventListener('click', () => {
+    const time = $('tmplTime').value;
+    const label = $('tmplLabel').value.trim();
+    if(!time || !label){ alert('Set a time and a label.'); return; }
+    scheduleTemplate.push({ id: uid(), time, label });
+    $('tmplLabel').value = '';
+    saveLocal(); renderTemplateList(); pushToCloud(true);
+  });
+
+  const WEEKDAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  function renderWeekdayChips(){
+    const el = $('weekdayChips');
+    el.innerHTML = WEEKDAY_LABELS.map((name, i) => `
+      <div class="chip ${selectedWeekdays.has(i) ? 'active' : ''}" data-wd="${i}">${name}</div>
+    `).join('');
+    el.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const wd = parseInt(chip.dataset.wd, 10);
+        if(selectedWeekdays.has(wd)) selectedWeekdays.delete(wd); else selectedWeekdays.add(wd);
+        renderWeekdayChips();
+      });
+    });
+  }
+
+  $('applyTmplBtn').addEventListener('click', () => {
+    if(scheduleTemplate.length === 0){ alert('Add at least one block to your day template first.'); return; }
+    const startVal = $('applyStart').value, endVal = $('applyEnd').value;
+    if(!startVal || !endVal){ alert('Pick a start and end date.'); return; }
+    const start = new Date(startVal + 'T00:00:00');
+    const end = new Date(endVal + 'T00:00:00');
+    if(end < start){ alert('End date is before start date.'); return; }
+    if(selectedWeekdays.size === 0){ alert('Select at least one day of the week.'); return; }
+
+    // clear existing entries in range
+    const startKey = startVal, endKey = endVal;
+    const toRemove = scheduleEntries.filter(s => s.date >= startKey && s.date <= endKey);
+    toRemove.forEach(s => deletedScheduleIds.push(s.id));
+    scheduleEntries = scheduleEntries.filter(s => !(s.date >= startKey && s.date <= endKey));
+
+    let cur = new Date(start);
+    let count = 0;
+    while(cur <= end){
+      if(selectedWeekdays.has(cur.getDay())){
+        const dateKey = cur.toISOString().slice(0,10);
+        scheduleTemplate.forEach(t => {
+          scheduleEntries.push({ id: uid(), date: dateKey, time: t.time, label: t.label });
+          count++;
+        });
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    saveLocal();
+    renderScheduleList();
+    pushToCloud(true);
+    alert(`Applied — ${count} schedule blocks added.`);
+  });
+
+  function scheduleEntriesInBrowseMonth(){
+    return scheduleEntries.filter(s => {
+      const d = new Date(s.date + 'T00:00:00');
+      return d.getFullYear() === schedBrowse.year && d.getMonth() === schedBrowse.month;
+    });
+  }
+
+  function renderScheduleList(){
+    $('schedMonthLabel').textContent = MONTH_NAMES[schedBrowse.month] + ' ' + schedBrowse.year;
+    const list = scheduleEntriesInBrowseMonth();
+    const el = $('scheduleList');
+    if(list.length === 0){ el.innerHTML = '<div class="hint">No schedule entries this month.</div>'; return; }
+    const groups = {};
+    list.forEach(s => { if(!groups[s.date]) groups[s.date] = []; groups[s.date].push(s); });
+    const dateKeys = Object.keys(groups).sort();
+    el.innerHTML = dateKeys.map(dateKey => {
+      const items = groups[dateKey].sort((a,b) => a.time.localeCompare(b.time));
+      const d = new Date(dateKey + 'T00:00:00');
+      return `
+        <div class="day-sched">
+          <div class="day-sched-label">${d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'})}</div>
+          ${items.map(s => `
+            <div class="sched-item">
+              <div class="sched-item-left"><span class="sched-time">${formatTime(s.time)}</span><span class="sched-label">${escapeHtml(s.label)}</span></div>
+              <span class="mini-del" data-id="${s.id}">×</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }).join('');
+    el.querySelectorAll('.mini-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        scheduleEntries = scheduleEntries.filter(s => s.id !== btn.dataset.id);
+        deletedScheduleIds.push(btn.dataset.id);
+        saveLocal(); renderScheduleList(); pushToCloud(true);
+      });
+    });
+  }
+
+  $('schedMonthPrev').addEventListener('click', () => {
+    schedBrowse.month--; if(schedBrowse.month < 0){ schedBrowse.month = 11; schedBrowse.year--; }
+    renderScheduleList();
+  });
+  $('schedMonthNext').addEventListener('click', () => {
+    schedBrowse.month++; if(schedBrowse.month > 11){ schedBrowse.month = 0; schedBrowse.year++; }
+    renderScheduleList();
+  });
+
+  /* ---------- bill reminders ---------- */
+  $('remRecurrence').addEventListener('change', () => {
+    const isMonthly = $('remRecurrence').value === 'monthly';
+    $('remDay').style.display = isMonthly ? 'block' : 'none';
+    $('remDate').style.display = isMonthly ? 'none' : 'block';
+  });
+
+  function nextDueDate(rem){
+    const now = new Date(); now.setHours(0,0,0,0);
+    if(rem.recurrence === 'once'){
+      return new Date(rem.date + 'T00:00:00');
+    }
+    // monthly on day-of-month
+    let candidate = new Date(now.getFullYear(), now.getMonth(), rem.day);
+    if(candidate < now) candidate = new Date(now.getFullYear(), now.getMonth()+1, rem.day);
+    return candidate;
+  }
+
+  function daysUntil(date){
+    const now = new Date(); now.setHours(0,0,0,0);
+    const d = new Date(date); d.setHours(0,0,0,0);
+    return Math.round((d - now) / 86400000);
+  }
+
+  $('addRemBtn').addEventListener('click', () => {
+    const name = $('remName').value.trim();
+    const amount = parseFloat($('remAmount').value) || null;
+    const recurrence = $('remRecurrence').value;
+    if(!name){ alert('Name the reminder.'); return; }
+    let rem = { id: uid(), name, amount, recurrence };
+    if(recurrence === 'monthly'){
+      const day = parseInt($('remDay').value, 10);
+      if(!(day >= 1 && day <= 31)){ alert('Enter a valid day of month (1-31).'); return; }
+      rem.day = day;
+    } else {
+      const dateVal = $('remDate').value;
+      if(!dateVal){ alert('Pick a date.'); return; }
+      rem.date = dateVal;
+    }
+    reminders.push(rem);
+    $('remName').value = ''; $('remAmount').value = ''; $('remDay').value = ''; $('remDate').value = '';
+    saveLocal(); renderReminders(); renderDueBanner(); pushToCloud(true);
+  });
+
+  function renderReminders(){
+    const el = $('remindersList');
+    if(reminders.length === 0){ el.innerHTML = '<div class="hint">No bill reminders yet.</div>'; return; }
+    const withDue = reminders.map(r => ({ ...r, due: nextDueDate(r) })).sort((a,b) => a.due - b.due);
+    el.innerHTML = withDue.map(r => {
+      const days = daysUntil(r.due);
+      const soon = days <= 3;
+      const dueLabel = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'Due today' : days === 1 ? 'Tomorrow' : `in ${days}d`;
+      return `
+        <div class="rem-row">
+          <div>
+            <div class="rem-name">${escapeHtml(r.name)}${r.amount ? ' — ' + fmt(r.amount) : ''}</div>
+            <div class="rem-sub">${r.recurrence === 'monthly' ? 'Monthly on day ' + r.day : 'One-time · ' + r.due.toLocaleDateString('en-US')}</div>
+          </div>
+          <span class="rem-due ${soon ? 'soon' : 'upcoming'}">${dueLabel}</span>
+          <span class="mini-del" data-id="${r.id}">×</span>
+        </div>
+      `;
+    }).join('');
+    el.querySelectorAll('.mini-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        reminders = reminders.filter(r => r.id !== btn.dataset.id);
+        deletedReminderIds.push(btn.dataset.id);
+        saveLocal(); renderReminders(); renderDueBanner(); pushToCloud(true);
+      });
+    });
+  }
+
+  function renderDueBanner(){
+    const el = $('dueSoonBanner');
+    const dismissedUntil = localStorage.getItem('ledger_banner_dismiss');
+    if(dismissedUntil && new Date(dismissedUntil) > new Date()){ el.innerHTML = ''; return; }
+    const due = reminders.map(r => ({ ...r, due: nextDueDate(r) })).filter(r => daysUntil(r.due) <= 3);
+    if(due.length === 0){ el.innerHTML = ''; return; }
+    due.sort((a,b) => a.due - b.due);
+    const names = due.map(r => {
+      const days = daysUntil(r.due);
+      const label = days < 0 ? 'overdue' : days === 0 ? 'due today' : days === 1 ? 'due tomorrow' : `due in ${days}d`;
+      return `${r.name} (${label})`;
+    }).join(', ');
+    el.innerHTML = `<div class="due-banner"><span>⚠ ${names}</span><span class="x" id="dismissBanner">×</span></div>`;
+    $('dismissBanner').addEventListener('click', () => {
+      const until = new Date(); until.setHours(until.getHours() + 12);
+      localStorage.setItem('ledger_banner_dismiss', until.toISOString());
+      el.innerHTML = '';
+    });
+  }
+
+  function renderSchedule(){
+    renderTemplateList();
+    renderWeekdayChips();
+    renderScheduleList();
+    renderReminders();
   }
 
   /* ---------- debt tracker ---------- */
@@ -1292,12 +1787,16 @@
     const todayStr = new Date().toISOString().slice(0,10);
     $('dateInput').value = todayStr;
     $('shiftDate').value = todayStr;
+    $('applyStart').value = todayStr;
+    $('applyEnd').value = todayStr;
     populateCategorySelect();
     populateDebtLinkSelect();
     buildFilterChips();
     render();
     renderDebts();
     renderWork();
+    renderSchedule();
+    renderDueBanner();
     if(syncUrl){
       $('syncUrlInput').value = syncUrl;
       $('copyLinkBtn').style.display = 'block';
